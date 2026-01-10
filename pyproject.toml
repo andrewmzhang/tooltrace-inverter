@@ -1,0 +1,8 @@
+[project]
+name = "tooltrace-inverter"
+version = "0.1.0"
+description = "Creates a positive tool model from a tooltrace.ai gridfinity bin with a tool negative"
+requires-python = ">=3.9"
+dependencies = [
+    "cadquery"
+]
