@@ -26,7 +26,7 @@ All rights reserved.
 ## How to Compile
 
 You'll need to compile OCCT for emscripten.
-```
+```shell
 git clone https://github.com/Open-Cascade-SAS/OCCT.git
 cd OCCT
 mkdir build-emc
