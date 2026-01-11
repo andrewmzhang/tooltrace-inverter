@@ -23,7 +23,7 @@ void postLog(const std::string &log) {
     auto cppLog = std::format("C++: {}", log);
     auto logBuffer = new char[cppLog.size() + 1];
     std::copy(cppLog.begin(), cppLog.end(), logBuffer);
-    logBuffer[cppLog.size()] = '\0';  // Add null terminator
+    logBuffer[cppLog.size()] = '\0'; // Add null terminator
     EM_ASM({
            if (Module.postLog) Module.postLog($0);
            }, logBuffer);
@@ -42,7 +42,7 @@ TopoDS_Shape readStepFile(const std::string &filename) {
 TopoDS_Shape readStepStream(std::istringstream &content) {
     STEPControl_Reader reader;
     if (reader.ReadStream("myname", content) != IFSelect_RetDone) {
-        postLog( "Error reading STEP file:\n");
+        postLog("Error reading STEP file:\n");
         throw std::runtime_error("C++: Error reading STEP file.");
     }
     reader.TransferRoots();
@@ -51,11 +51,11 @@ TopoDS_Shape readStepStream(std::istringstream &content) {
 
 
 // Utility to write STL file
-void writeStlFile(const TopoDS_Shape &shape, const std::string &filename, const double linear_deflection = 1e-3) {
+void writeStlFile(const TopoDS_Shape &shape, const std::string &filename, const double linearDeflection = 1e-3) {
     StlAPI_Writer writer;
     const BRepMesh_IncrementalMesh mesher(
         shape,
-        linear_deflection
+        linearDeflection
     );
     if (!mesher.IsDone()) {
         throw std::runtime_error("C++: Meshing failed");
@@ -63,11 +63,11 @@ void writeStlFile(const TopoDS_Shape &shape, const std::string &filename, const 
     writer.Write(shape, filename.c_str());
 }
 
-void writeStlStream(const TopoDS_Shape &shape, std::ostream &ostream, const double linear_deflection = 1e-3) {
+void writeStlStream(const TopoDS_Shape &shape, std::ostream &ostream, const double linearDeflection = 1e-3) {
     StlAPI_Writer writer;
     const BRepMesh_IncrementalMesh mesher(
         shape,
-        linear_deflection
+        linearDeflection
     );
     if (!mesher.IsDone()) {
         throw std::runtime_error("C++: Meshing failed");
@@ -157,12 +157,12 @@ TopoDS_Shape createPositiveToolFromNegativeBin(const TopoDS_Shape &body) {
         body);
 }
 
-int generateToolPositiveFromFile(const std::string &fname_input, const std::string &fname_output,
+int generateToolPositiveFromFile(const std::string &fnameInput, const std::string &fnameOutput,
                                  const double tol = 1e-6) {
     try {
-        const auto body = readStepFile(fname_input);
+        const auto body = readStepFile(fnameInput);
         const auto tool = createPositiveToolFromNegativeBin(body);
-        writeStlFile(tool, fname_output, tol);
+        writeStlFile(tool, fnameOutput, tol);
     } catch (const std::exception &e) {
         std::cerr << "C++: Error: " << e.what() << "\n";
         return 1;
@@ -176,11 +176,11 @@ int generateToolPositiveFromStream(
     const double tol = 1e-2
 ) {
     try {
-        postLog( "Attempting to read STEP file...");
+        postLog("Attempting to read STEP file...");
         const auto body = readStepStream(content);
-        postLog( "Attempting to create tool positive from input body...");
+        postLog("Attempting to create tool positive from input body...");
         const auto tool = createPositiveToolFromNegativeBin(body);
-        postLog( "Attempting to write STL file...");
+        postLog("Attempting to write STL file...");
         writeStlStream(tool, os, tol);
     } catch (const std::exception &e) {
         std::cerr << "C++ Error: " << e.what() << "\n";
@@ -194,9 +194,8 @@ extern "C" {
 // Called from JavaScript
 EMSCRIPTEN_KEEPALIVE
 void print_file(const char *in_buffer, size_t in_size, char *out_buffer, size_t out_size) {
-    postLog( std::format("File contents:\n{}", in_buffer));
+    postLog(std::format("File contents:\n{}", in_buffer));
 }
-
 
 
 EMSCRIPTEN_KEEPALIVE
@@ -205,24 +204,24 @@ const char *generate_tool_positive(const char *in_buffer, size_t in_size, double
     if (std::isnan(tolerance) || std::isinf(tolerance) || tolerance <= 0) {
         constexpr double default_tolerance = 1e-2;
         tolerance = default_tolerance;
-        postLog( std::format("Tolerance value not acceptable. Defaulting to {}", tolerance));
-    } else if ( tolerance >= 1 || tolerance < 1e-2) {
-        postLog( std::format("Tolerance value is not recommended: {}. Proceeding regardless...", tolerance));
+        postLog(std::format("Tolerance value not acceptable. Defaulting to {}", tolerance));
+    } else if (tolerance >= 1 || tolerance < 1e-2) {
+        postLog(std::format("Tolerance value is not recommended: {}. Proceeding regardless...", tolerance));
     } else {
-        postLog( std::format("Linear deflection tolerance value: {}", tolerance));
+        postLog(std::format("Linear deflection tolerance value: {}", tolerance));
     }
 
     // Attempt to generate tool positive
-    postLog( std::format("Received file of size: {}", in_size));
+    postLog(std::format("Received file of size: {}", in_size));
     std::istringstream iss(std::string(in_buffer, in_size));
     std::ostringstream oss;
-    postLog( "Attempting to generate tool positive...");
+    postLog("Attempting to generate tool positive...");
     generateToolPositiveFromStream(iss, oss, tolerance);
 
     auto file_content = oss.str();
     auto file_size = oss.str().size();
-    postLog( "Positive tool generated");
-    postLog( std::format("STL file size: {}", file_size));
+    postLog("Positive tool generated");
+    postLog(std::format("STL file size: {}", file_size));
 
     // Copy the OSS into a buffer
     auto out_buffer = new char[file_size];
