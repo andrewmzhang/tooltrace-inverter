@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Single File Emscripten App</title>
+</head>
+<body>
+
+<h1>File Upload and Processing</h1>
+
+<!-- Upload Button -->
+<input type="file" id="fileInput"/>
+
+<!-- Download Button -->
+<button id="downloadButton" style="display: none;">Download Tool Positive STL</button>
+
+<pre id="output"></pre>
+
+{{{ SCRIPT }}}
+
+<script>
+    // Override console.log to redirect to webpage <pre id="output"></pre>
+    const outputElement = document.getElementById("output");
+    const originalLog = console.log;
+    console.log = function (message) {
+        originalLog.apply(console, arguments);  // Still log to console (optional)
+        if (outputElement) {
+            outputElement.textContent += message + "\n";  // Append message to <pre>
+        }
+    };
+
+    Module.onRuntimeInitialized = () => {
+        console.log("JS: WASM ready");
+    };
+
+    document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+    document.getElementById('downloadButton').addEventListener('click', downloadProcessedFile);
+
+    let uploadedFile = null;
+    let processedFile = null;
+
+    function downloadProcessedFile() {
+        if (!processedFile) return;
+
+        // Create a download link for the processed file
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(processedFile);
+        link.download = processedFile.name;
+        link.click();
+    }
+
+    function handleFileSelect(event) {
+        uploadedFile = event.target.files[0];
+        if (uploadedFile) {
+            document.getElementById('downloadButton').style.display = 'none';
+            document.getElementById('downloadButton').disabled = true;
+            processFile()
+        }
+    }
+
+    function processFile() {
+        // Disable the download as we are processing
+        document.getElementById('downloadButton').style.display = 'none';
+        document.getElementById('downloadButton').disabled = true;
+        if (!uploadedFile) {
+            console.log("JS: Missing uploaded file!");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const text = reader.result;
+
+            // Alloc space for the file, convert it to utf-8
+            const inSize = Module.lengthBytesUTF8(text) + 1;
+            console.log("JS: Received file of size " + inSize)
+
+            // Allocate memory for the content pointer and length
+            const inBuffer = Module._malloc(inSize);
+            Module.stringToUTF8(text, inBuffer, inSize);
+            var contentLengthPtr = Module._malloc(4);  // Allocating space for the length (4 bytes)
+            var charBuffer = Module._generate_tool_positive(inBuffer, inSize, contentLengthPtr);
+            var bufferStr = Module.UTF8ToString(charBuffer)
+            console.log("JS: STL file size: " + bufferStr.length)
+
+            // Create a Blob from the content
+            var blob = new Blob([bufferStr], {type: 'application/octet-stream'});
+
+            // Cleanup allocations
+            Module._free(inBuffer);
+            Module._free(contentLengthPtr);
+            Module._free(charBuffer);
+
+            // Create new file blob
+            const fileNameWithoutExt = uploadedFile.name.substring(0, uploadedFile.name.lastIndexOf('.')) || uploadedFile.name;
+            const newFileName = fileNameWithoutExt + ".stl";
+            processedFile = blob
+            processedFile.name = newFileName
+
+            // Allow user download
+            document.getElementById('downloadButton').style.display = 'inline';
+            document.getElementById('downloadButton').disabled = false;
+        };
+        reader.readAsText(uploadedFile);
+    }
+
+
+    // document.getElementById("fileInput").addEventListener("change", e => {
+    //     const file = e.target.files[0];
+    //     if (!file) return;
+    //
+    //     const reader = new FileReader();
+    //     reader.onload = () => {
+    //         const text = reader.result;
+    //
+    //         // Alloc space for the file, convert it to utf-8
+    //         const inSize = Module.lengthBytesUTF8(text) + 1;
+    //         console.log("JS: Received file of size " + inSize)
+    //
+    //         // Allocate memory for the content pointer and length
+    //         const inBuffer = Module._malloc(inSize);
+    //         Module.stringToUTF8(text, inBuffer, inSize);
+    //         var contentLengthPtr = Module._malloc(4);  // Allocating space for the length (4 bytes)
+    //         var charBuffer = Module._generate_tool_positive(inBuffer, inSize, contentLengthPtr);
+    //         var bufferStr = Module.UTF8ToString(charBuffer)
+    //         console.log("JS: STL file size: " + inSize)
+    //
+    //         // Create a Blob from the content
+    //         var blob = new Blob([bufferStr], {type: 'application/octet-stream'});
+    //
+    //         // Cleanup allocations
+    //         Module._free(inBuffer);
+    //         Module._free(contentLengthPtr);
+    //         Module._free(charBuffer);
+    //
+    //         // Create a download link for the Blob
+    //         const fileNameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+    //         const newFileName = fileNameWithoutExt + ".stl";
+    //         var link = document.createElement('a');
+    //         link.href = URL.createObjectURL(blob);
+    //         link.download = newFileName
+    //     };
+    //     reader.readAsText(file);
+    // });
+</script>
+
+</body>
+</html>
