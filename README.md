@@ -8,6 +8,13 @@ bins with magnet support, a feature that Tooltrace does not currently provide.
 
 ---
 
+## License
+
+Copyright © 2026 Andrew M. Zhang  
+All rights reserved.
+
+---
+
 ## Workflow
 
 1. Generate a Gridfinity bin with a tool negative using [Tooltrace](https://tooltrace.ai)
@@ -16,9 +23,50 @@ bins with magnet support, a feature that Tooltrace does not currently provide.
    1. `python main.py gridfinity_bin.step tool_model.stl`
 4. Open [Gridfinity Generator](https://gridfinitygenerator.com) -> Cutout -> General -> Browse -> `tool_model.stl`
 
----
+## How to Compile
 
-## License
+You'll need to compile OCCT for emscripten.
+```
+git clone https://github.com/Open-Cascade-SAS/OCCT.git
+cd OCCT
+mkdir build-emc
+cd build-emc
+emcmake cmake -DBUILD_LIBRARY_TYPE=static ..
+emmake make -j8
+```
+Compile `main.cpp` and use `shell.html` to create the webpage
+```shell
+emcc --shell-file shell.html \
+  -I/path/to/OCCT/build-emc/include/opencascade \
+  -L/path/to/OCCT/build-emc/lin32/clang/lib \
+  -lTKernel \
+  -lTKMath \
+  -lTKG2d \
+  -lTKG3d \
+  -lTKGeomBase \
+  -lTKBRep \
+  -lTKGeomAlgo \
+  -lTKTopAlgo \
+  -lTKPrim \
+  -lTKBool \
+  -lTKShHealing \
+  -lTKXSBase \
+  -lTKDESTL \
+  -lTKBO \
+  -lTKDESTEP \
+  -lTKMESH \
+  -std=c++20 \
+  -sEXPORTED_FUNCTIONS=_malloc,_free \
+  -sEXPORTED_RUNTIME_METHODS=stringToUTF8,UTF8ToString,lengthBytesUTF8 \
+  -sALLOW_MEMORY_GROWTH \
+  -sNO_DISABLE_EXCEPTION_CATCHING \
+  -sMODULARIZE=1 \
+  -sWASM=1 \
+  main.cpp -o index.html
+```
 
-Copyright © 2026 Andrew M. Zhang  
-All rights reserved.
+This compilation should produce `index.wasm`, `index.js`, and `index.html`. Webpage can be served via:
+
+```shell
+python -m http.server
+```

@@ -16,6 +16,18 @@
 #include <stdexcept>
 #include <algorithm>
 #include <emscripten.h>
+#include <format>
+
+
+void postLog(const std::string &log) {
+    auto cppLog = std::format("C++: {}", log);
+    auto logBuffer = new char[cppLog.size() + 1];
+    std::copy(cppLog.begin(), cppLog.end(), logBuffer);
+    logBuffer[cppLog.size()] = '\0';  // Add null terminator
+    EM_ASM({
+           if (Module.postLog) Module.postLog($0);
+           }, logBuffer);
+}
 
 // Utility to read STEP file
 TopoDS_Shape readStepFile(const std::string &filename) {
@@ -29,8 +41,8 @@ TopoDS_Shape readStepFile(const std::string &filename) {
 
 TopoDS_Shape readStepStream(std::istringstream &content) {
     STEPControl_Reader reader;
-    if (reader.ReadStream("C++: myname", content) != IFSelect_RetDone) {
-        emscripten_log(EM_LOG_CONSOLE, "C++: Error reading STEP file:\n");
+    if (reader.ReadStream("myname", content) != IFSelect_RetDone) {
+        postLog( "Error reading STEP file:\n");
         throw std::runtime_error("C++: Error reading STEP file.");
     }
     reader.TransferRoots();
@@ -160,18 +172,18 @@ int generateToolPositiveFromFile(const std::string &fname_input, const std::stri
 
 int generateToolPositiveFromStream(
     std::istringstream &content,
-    std::ostream& os,
+    std::ostream &os,
     const double tol = 1e-2
 ) {
     try {
-        emscripten_log(EM_LOG_CONSOLE, "C++: Attempting to read STEP file...");
+        postLog( "Attempting to read STEP file...");
         const auto body = readStepStream(content);
-        emscripten_log(EM_LOG_CONSOLE, "C++: Attempting to create tool positive from input body...");
+        postLog( "Attempting to create tool positive from input body...");
         const auto tool = createPositiveToolFromNegativeBin(body);
-        emscripten_log(EM_LOG_CONSOLE, "C++: Attempting to write STL file...");
+        postLog( "Attempting to write STL file...");
         writeStlStream(tool, os, tol);
     } catch (const std::exception &e) {
-        std::cerr << "C++: Error: " << e.what() << "\n";
+        std::cerr << "C++ Error: " << e.what() << "\n";
         return 1;
     }
     return 0;
@@ -182,27 +194,39 @@ extern "C" {
 // Called from JavaScript
 EMSCRIPTEN_KEEPALIVE
 void print_file(const char *in_buffer, size_t in_size, char *out_buffer, size_t out_size) {
-    emscripten_log(EM_LOG_CONSOLE, "C++: File contents:\n%s", in_buffer);
+    postLog( std::format("File contents:\n{}", in_buffer));
 }
 
+
+
 EMSCRIPTEN_KEEPALIVE
-const char* generate_tool_positive(const char *in_buffer, size_t in_size, int* out_length_ptr) {
+const char *generate_tool_positive(const char *in_buffer, size_t in_size, double tolerance) {
+    // Check if tolerance is acceptable
+    if (std::isnan(tolerance) || std::isinf(tolerance) || tolerance <= 0) {
+        constexpr double default_tolerance = 1e-2;
+        tolerance = default_tolerance;
+        postLog( std::format("Tolerance value not acceptable. Defaulting to {}", tolerance));
+    } else if ( tolerance >= 1 || tolerance < 1e-2) {
+        postLog( std::format("Tolerance value is not recommended: {}. Proceeding regardless...", tolerance));
+    } else {
+        postLog( std::format("Linear deflection tolerance value: {}", tolerance));
+    }
+
     // Attempt to generate tool positive
-    emscripten_log(EM_LOG_CONSOLE, "C++: Received file of size: %d", in_size);
+    postLog( std::format("Received file of size: {}", in_size));
     std::istringstream iss(std::string(in_buffer, in_size));
     std::ostringstream oss;
-    emscripten_log(EM_LOG_CONSOLE, "C++: Attempting to generate tool positive...");
-    generateToolPositiveFromStream(iss, oss);
+    postLog( "Attempting to generate tool positive...");
+    generateToolPositiveFromStream(iss, oss, tolerance);
 
     auto file_content = oss.str();
     auto file_size = oss.str().size();
-    *out_length_ptr = file_size;
-    emscripten_log(EM_LOG_CONSOLE, "C++: Positive tool generated");
-    emscripten_log(EM_LOG_CONSOLE, "C++: STL file size: %d", file_size);
+    postLog( "Positive tool generated");
+    postLog( std::format("STL file size: {}", file_size));
 
     // Copy the OSS into a buffer
     auto out_buffer = new char[file_size];
-    std::copy(file_content.begin(), file_content.end(), out_buffer);
+    std::ranges::copy(file_content, out_buffer);
     return out_buffer;
 }
 }
