@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Tooltrace Positive Generator</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.min.css">
+    <style>
+        body {
+            margin: 5% auto;
+            max-width: 73%;
+        }
+    </style>
+<!--    <style>-->
+<!--        body {margin: 5% auto; background: #f2f2f2; color: #444444; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.8; text-shadow: 0 1px 0 #ffffff; max-width: 73%;}-->
+<!--        code {background: white;}-->
+<!--        a {border-bottom: 1px solid #444444; color: #444444; text-decoration: none;}-->
+<!--        a:hover {border-bottom: 0;}-->
+<!--    </style>-->
+</head>
+<body>
+
+<h1>Tooltrace Bin → Tool Positive Generator</h1>
+
+<h2>Purpose:</h2>
+<p>
+    <a href="https://tooltrace.ai" target="_blank">Tooltrace</a> is an easy-to-use web app that generates custom
+    Gridfinity bins with a perfectly shaped cutout (i.e., a tool negative) to place your tool into. Unfortunately, more
+    advanced customizations are lacking. <a href="https://gridfinitygenerator.com"
+                                            target="_blank">GridfinityGenerator</a> offers several advanced
+    customization options, such as placing magnets on the bottom of the bins. However, to generate a bin with a custom
+    cutout, you need a (positive) model of your tool. Creating a (positive) model of your tool is much harder than using
+    <a href="https://tooltrace.ai" target="_blank">Tooltrace</a>. This web app aims to take a bin with a cutout
+    generated on <a href="https://tooltrace.ai" target="_blank">Tooltrace</a>, and produce a tool
+    (positive) that can be used in <a href="https://gridfinitygenerator.com" target="_blank">GridfinityGenerator</a>.
+</p>
+
+<h2>Instructions:</h2>
+<ol>
+    <li>Use Tooltrace to generate a bin for your tool, following all the instructions</li>
+    <li>Download the Gridfinity bin as a STEP file</li>
+    <li>(Optional) Set the linear deflection value of the STL. The smaller this value, the finer the details in the
+        STL
+    </li>
+    <li>Upload the step file *here*</li>
+    <li>Once processing is complete, download the tool positive STL</li>
+    <li>Go to GridfinityGenerator → Cutout → General → Upload the STL file</li>
+</ol>
+
+<!-- tolerance value -->
+<label for="toleranceInput">Enter STL linear deflection tolerance value ideally between [1e-2, 1]:</label>
+<br>
+<input
+        type="number"
+        id="toleranceInput"
+        name="decimalInput"
+        placeholder="0.1"
+        value="0.1"
+        step="0.1"
+        autocomplete="off"
+        required
+>
+<br>
+
+<!-- Upload Button -->
+<input type="file" id="fileInput" autocomplete="off"/>
+<!-- Download Button -->
+<button id="downloadButton" style="display: none;">Download Tool Positive STL</button>
+<!-- Logger output -->
+<pre><code id="output"></code></pre>
+
+<script async type="text/javascript" src="index.js"></script>
+
+<script>
+    // Override console.log to redirect to webpage <pre id="output"></pre>
+    const outputElement = document.getElementById("output");
+    const originalLog = console.log;
+    console.log = function (message) {
+        originalLog.apply(console, arguments);  // Still log to console (optional)
+        if (outputElement) {
+            outputElement.textContent += message + "\n";  // Append message to <pre>
+        }
+    };
+
+    document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+    document.getElementById('downloadButton').addEventListener('click', downloadProcessedFile);
+
+    let uploadedFile = null;
+    let processedFile = null;
+
+    function downloadProcessedFile() {
+        if (!processedFile) return;
+
+        // Create a download link for the processed file
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(processedFile);
+        link.download = processedFile.name;
+        link.click();
+    }
+
+    function handleFileSelect(event) {
+        uploadedFile = event.target.files[0];
+        if (uploadedFile) {
+            document.getElementById('downloadButton').style.display = 'none';
+            document.getElementById('downloadButton').disabled = true;
+            processFile()
+        }
+    }
+
+    const worker = new Worker('worker.js');
+
+    function processFile() {
+        // Disable the download as we are processing
+        document.getElementById('downloadButton').style.display = 'none';
+        document.getElementById('downloadButton').disabled = true;
+        if (!uploadedFile) {
+            console.log("JS: Missing uploaded file!");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const text = reader.result;
+            const tolerance = parseFloat(document.getElementById("toleranceInput").value);
+            worker.postMessage({'text': text, 'tolerance': tolerance})
+        };
+        reader.readAsText(uploadedFile);
+    }
+
+    worker.onmessage = e => {
+        const {type, blob, log} = e.data;
+
+        if (type === "ready") {
+            console.log("JS: WebWorker ready!")
+        } else if (type === "log") {
+            console.log("JS: " + log)
+        } else if (type === "blob") {
+            // Catch result from worker
+
+            // Create new file from blob
+            const fileNameWithoutExt = uploadedFile.name.substring(0, uploadedFile.name.lastIndexOf('.')) || uploadedFile.name;
+            const newFileName = fileNameWithoutExt + ".stl";
+            processedFile = blob
+            processedFile.name = newFileName
+
+            // Allow user download
+            document.getElementById('downloadButton').style.display = 'inline';
+            document.getElementById('downloadButton').disabled = false;
+        } else {
+            console.log("JS: Worker sent msg of unknown type: " + type)
+        }
+
+    };
+
+</script>
+
+</body>
+</html>
