@@ -11,7 +11,7 @@ bins with magnet support, a feature that Tooltrace does not currently provide.
 Copyright © 2026 Andrew M. Zhang  
 All rights reserved.
 
-## Workflow
+## Python Workflow
 
 1. Generate a Gridfinity bin with a tool negative using [Tooltrace](https://tooltrace.ai)
 2. Download the Tooltrace bin as a STEP file
@@ -19,7 +19,7 @@ All rights reserved.
    1. `python main.py gridfinity_bin.step tool_model.stl`
 4. Open [Gridfinity Generator](https://gridfinitygenerator.com) -> Cutout -> General -> Browse -> `tool_model.stl`
 
-## How to Compile
+## How to Compile C++ into WASM
 
 You'll need to compile OCCT for emscripten.
 ```shell
