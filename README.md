@@ -6,14 +6,10 @@ into a tool model positive.
 The resulting tool model can then be imported into [Gridfinity Generator](https://gridfinitygenerator.com) to create
 bins with magnet support, a feature that Tooltrace does not currently provide.
 
----
-
 ## License
 
 Copyright © 2026 Andrew M. Zhang  
 All rights reserved.
-
----
 
 ## Workflow
 
