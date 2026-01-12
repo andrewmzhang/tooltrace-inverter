@@ -19,7 +19,18 @@ All rights reserved.
    1. `python main.py gridfinity_bin.step tool_model.stl`
 4. Open [Gridfinity Generator](https://gridfinitygenerator.com) -> Cutout -> General -> Browse -> `tool_model.stl`
 
-## How to Compile C++ into WASM
+## How to compile C++ into WASM
+
+### Using cmake
+
+```shell
+mkdir build && cd build
+emcmake cmake ..         # Use CMake version ~4.2.0
+emmake make -j8          # Produces `index.wasm` `index.js`, and `index.html` in the build directory
+python -m http.server    # Use this command to serve the page
+```
+
+## How to Compile C++ into WASM w/o cmake
 
 You'll need to compile OCCT for emscripten.
 ```shell
@@ -27,7 +38,7 @@ git clone https://github.com/Open-Cascade-SAS/OCCT.git
 cd OCCT
 mkdir build-emc
 cd build-emc
-emcmake cmake -DBUILD_LIBRARY_TYPE=static ..
+emcmake cmake -DBUILD_LIBRARY_TYPE=static -DBUILD_MODULE_Draw=OFF -DUSE_FREETYPE=OFF ..
 emmake make -j8
 ```
 Compile `main.cpp` and use `shell.html` to create the webpage
@@ -62,7 +73,6 @@ emcc --shell-file shell.html \
 ```
 
 This compilation should produce `index.wasm`, `index.js`, and `index.html`. Webpage can be served via:
-
 ```shell
 python -m http.server
 ```

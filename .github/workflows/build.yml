@@ -1,0 +1,52 @@
+name: C++ Build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ python3 python3-pip build-essential
+
+      - name: Install cmake
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~4.2.0"
+
+      - name: Setup emsdk
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          # Original build was made using version 4.0.22, but probably not a huge deal to use the latest Emscripten
+          version: latest
+          # This is the name of the cache folder.
+          # The cache folder will be placed in the build directory,
+          #  so make sure it doesn't conflict with anything!
+          actions-cache-folder: 'emsdk-cache'
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Compile C++ into WASM. Copy build products to {root}/site/
+        run: |
+          cd emsdk && ./emsdk install latest && ./emsdk activate latest && source ./emsdk_env.sh && cd ..
+          mkdir -p build && cd build && emcmake cmake .. && emmake make -j 4 && cd ..
+          build_products=(build/index.{html,wasm,js})
+          for f in "${files[@]}"; do if [[ ! -f "$f" ]]; then echo "Missing file: $f" >&2 exit 1 fi done
+          mkdir -p site && cp "${files[@]}" site/ 
+
+      # Deploy only when pushing to main (not on PRs)
+      - name: Deploy to gh-pages
+        if: github.event_name == 'push'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./site
