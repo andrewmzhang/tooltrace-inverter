@@ -34,13 +34,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Compile C++ into WASM. Copy build products to {root}/site/
+      - name: Compile C++ into WASM
         run: |
           cd emsdk && ./emsdk install latest && ./emsdk activate latest && source ./emsdk_env.sh && cd ..
           mkdir -p build && cd build && emcmake cmake .. && emmake make -j 4 && cd ..
+
+      - name: Copy build products to $ROOT/site/ dir
+        run: |
           build_products=(build/index.{html,wasm,js})
-          for f in "${build_products[@]}"; do if [[ ! -f "$f" ]]; then echo "Missing file: $f" >&2 exit 1 fi done
-          mkdir -p site && cp "${build_products[@]}" site/ 
+          for f in "${build_products[@]}"; do if [[ ! -f "$f" ]]; then echo "Missing file: $f" >&2; exit 1; fi; done; mkdir -p site; cp "${build_products[@]}" site/
+          mkdir -p site && cp "${build_products[@]}" site/
 
       # Deploy only when pushing to main (not on PRs)
       - name: Deploy to gh-pages
