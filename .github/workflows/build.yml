@@ -39,8 +39,8 @@ jobs:
           cd emsdk && ./emsdk install latest && ./emsdk activate latest && source ./emsdk_env.sh && cd ..
           mkdir -p build && cd build && emcmake cmake .. && emmake make -j 4 && cd ..
           build_products=(build/index.{html,wasm,js})
-          for f in "${files[@]}"; do if [[ ! -f "$f" ]]; then echo "Missing file: $f" >&2 exit 1 fi done
-          mkdir -p site && cp "${files[@]}" site/ 
+          for f in "${build_products[@]}"; do if [[ ! -f "$f" ]]; then echo "Missing file: $f" >&2 exit 1 fi done
+          mkdir -p site && cp "${build_products[@]}" site/ 
 
       # Deploy only when pushing to main (not on PRs)
       - name: Deploy to gh-pages
