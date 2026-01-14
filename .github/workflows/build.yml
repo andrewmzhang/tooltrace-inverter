@@ -37,7 +37,7 @@ jobs:
 
       - name: Copy build products to `${{ github.workspace }}/site/`
         run: |
-          build_products=(build/index.{html,wasm,js} gridfinity_bin.step.png tool_model.stl.png)
+          build_products=(build/index.{html,wasm,js} gridfinity_bin.step.png tool_model.stl.png worker.js)
           for f in "${build_products[@]}"; do if [[ ! -f "$f" ]]; then echo "Missing file: $f" >&2; exit 1; fi; done;
           mkdir -p site && cp "${build_products[@]}" site/
 
