@@ -11,6 +11,13 @@ bins with magnet support, a feature that Tooltrace does not currently provide.
 Copyright © 2026 Andrew M. Zhang  
 All rights reserved.
 
+## Input/Output Example
+
+| Input: Tooltrace Bin W/ Cutout              | Output: Tool Model                  |
+|---------------------------------------------|-------------------------------------|
+| ![Tooltrace Bin](./gridfinity_bin.step.png) | ![Tool Model](./tool_model.stl.png) |
+
+
 ## Python Workflow
 
 1. Generate a Gridfinity bin with a tool negative using [Tooltrace](https://tooltrace.ai)
@@ -30,7 +37,7 @@ emmake make -j8          # Produces `index.wasm` `index.js`, and `index.html` in
 python -m http.server    # Use this command to serve the page
 ```
 
-## How to Compile C++ into WASM w/o cmake
+### Without cmake
 
 You'll need to compile OCCT for emscripten.
 ```shell

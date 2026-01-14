@@ -9,6 +9,18 @@
             margin: 5% auto;
             max-width: 80%;
         }
+
+        .image-container {
+            display: flex;
+            gap: 20px; /* space between images */
+        }
+
+        .image-container img {
+            width: 200px;
+            height: auto;
+            border-radius: 10px; /* optional: rounded corners */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* optional: shadow */
+        }
     </style>
 </head>
 <body>
@@ -27,6 +39,17 @@
     generated on <a href="https://tooltrace.ai" target="_blank">Tooltrace</a>, and produce a tool
     (positive) that can be used in <a href="https://gridfinitygenerator.com" target="_blank">GridfinityGenerator</a>.
 </p>
+
+<div class="image-container">
+    <figure>
+        <img src="./gridfinity_bin.step.png" alt="Tooltrace Bin" height="150">
+        <figcaption>Input: Tooltrace Bin Step File</figcaption>
+    </figure>
+    <figure>
+        <img src="./tool_model.stl.png" alt="Tool Model STL" height="150">
+        <figcaption>Output: Tooltrace Inverter STL File</figcaption>
+    </figure>
+</div>
 
 <h2>Instructions:</h2>
 <ol>
