@@ -1,0 +1,70 @@
+name: C++ Build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    name: Build C++ to WASM
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ python3 python3-pip build-essential
+
+      - name: Install cmake
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~4.2.0"
+
+      - name: Setup emsdk
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: latest # Originally built w/ v4.0.22, however latest version should not be an issue
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Compile C++ into WASM
+        run: |
+          cd emsdk && ./emsdk install latest && ./emsdk activate latest && source ./emsdk_env.sh && cd ..
+          mkdir -p build && cd build && emcmake cmake .. && emmake make -j 4 && cd ..
+
+      - name: Copy build products to `${{ github.workspace }}/site/`
+        run: |
+          build_products=(build/index.{html,wasm,js} gridfinity_bin.step.png tool_model.stl.png)
+          for f in "${build_products[@]}"; do if [[ ! -f "$f" ]]; then echo "Missing file: $f" >&2; exit 1; fi; done;
+          mkdir -p site && cp "${build_products[@]}" site/
+
+      - name: Upload `./site` as artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: site
+          path: site/
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write   # required for gh-pages
+
+    steps:
+      - name: Download site artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: site
+          path: site/
+
+      - name: Deploy to GH Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: site
