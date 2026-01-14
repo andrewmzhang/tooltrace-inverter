@@ -34,6 +34,7 @@ All rights reserved.
 mkdir build && cd build
 emcmake cmake ..         # Use CMake version ~4.2.0
 emmake make -j8          # Produces `index.wasm` `index.js`, and `index.html` in the build directory
+cp ../gridfinity_bin.step.png ../tool_model.stl.png ../worker.js ./build/ # Copy some assets into ./build
 python -m http.server    # Use this command to serve the page
 ```
 
